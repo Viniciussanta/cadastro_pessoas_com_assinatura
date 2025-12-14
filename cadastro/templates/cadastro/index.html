@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+    <title>Cadastro</title>
+  </head>
+  <body>
+    <h1>Demo cadastro de pessoa</h1>
+    
+    <form method="POST" action="{% url 'home' %}" class="register-container" id="form-cadastro">
+      {% csrf_token %}
+
+      <div class="personal-data">
+        <span>Dados</span>
+        
+        <input type="text" name="nome" placeholder="Nome" class="name-input input" required />
+        <input type="email" name="email" placeholder="Email" class="email-input input" required />
+        
+        <input type="text" name="cpf" id="cpf" placeholder="CPF" class="cpf-input input" maxlength="14" oninput="mascaraCPF(this)" required />
+        
+        <button type="button" class="register-button" onclick="salvarEEnviar()">Cadastrar</button>
+      </div>
+
+      <div class="digital-signature-container">
+        <span class="signature-title">Assinatura digital</span>
+        <canvas id="signature-canvas" class="digital-signature-canvas" width="300" height="150" style="border: 1px solid #ccc; background: white;"></canvas>
+        
+        <input type="hidden" name="dados_assinatura" id="dados_assinatura">
+        
+        <button type="button" onclick="limparAssinatura()" style="margin-top: 5px; font-size: 12px;">Limpar Assinatura</button>
+      </div>
+    </form>
+
+    <ul class="data-list-container">
+        </ul>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    
+    <script>
+        // --- 1. LÓGICA DO CANVAS (DESENHAR) ---
+        const canvas = document.getElementById('signature-canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+
+        // Configurações do traço
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 2;
+
+        // Mouse (PC)
+        canvas.addEventListener('mousedown', (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+        canvas.addEventListener('mousemove', (e) => { if (isDrawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
+        canvas.addEventListener('mouseup', () => { isDrawing = false; });
+
+        // Touch (Celular - Para funcionar no mobile)
+        canvas.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); // Impede a tela de rolar
+            isDrawing = true; 
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath(); 
+            ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top); 
+        });
+        canvas.addEventListener('touchmove', (e) => { 
+            e.preventDefault();
+            if (isDrawing) { 
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top); 
+                ctx.stroke(); 
+            } 
+        });
+        canvas.addEventListener('touchend', () => { isDrawing = false; });
+
+        function limparAssinatura() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // --- 2. LÓGICA DE SALVAR E ENVIAR ---
+        function salvarEEnviar() {
+            const inputAssinatura = document.getElementById('dados_assinatura');
+            const form = document.getElementById('form-cadastro');
+
+            // Verifica se assinou (opcional, mas bom)
+            // Aqui converte o desenho em TEXTO BASE64
+            const dataURL = canvas.toDataURL("image/png");
+            
+            // Joga o texto dentro do input escondido
+            inputAssinatura.value = dataURL;
+
+            // Envia o formulário pro Django
+            form.submit();
+        }
+
+        // --- 3. MÁSCARA DE CPF ---
+        function mascaraCPF(i){
+            var v = i.value;
+            if(isNaN(v[v.length-1])){ 
+              i.value = v.substring(0, v.length-1);
+              return;
+            }
+            i.setAttribute("maxlength", "14");
+            if (v.length == 3 || v.length == 7) i.value += ".";
+            if (v.length == 11) i.value += "-";
+        }
+    </script>
+  </body>
+</html>
